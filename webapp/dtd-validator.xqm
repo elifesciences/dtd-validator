@@ -7,35 +7,44 @@ declare
   %output:method("json")
 function e:validate-dtd($data as item()+)
 {
+  let $flavours := ("archiving","authoring","publishing")
   let $param-count := count($data)
   return
-    if ($param-count gt 2) then  error (
-                                        xs:QName("basex:error"),
-                                        (count($data)||' is too many parameters for this request')
-                                      )
-    else if (empty(for $param in $data where $param instance of document-node() return $param)) then error (
-                                        xs:QName("basex:error"),
-                                        ('An xml file must be supplied to validate')
-                                      )
-    else if ($param-count=2) then (
-      let $xml := for $param in $data where $param instance of document-node() return $param
-      let $type := for $param in $data where $param instance of xs:string return $param
-      let $version := e:get-version($xml)
-      let $dtd := e:get-dtd($version,$type)
-      let $report :=  validate:dtd-report($xml,$dtd)
-  
-      return e:dtd2json($report)
-    )
+    if ($param-count = 2) then (
+      if (not($data[. instance of document-node()])) then 
+          error(xs:QName("basex:error"),'An xml file must be supplied to validate')
+      else if (not($data[. instance of xs:string and .=$flavours])) then 
+          error(xs:QName("basex:error"),'If two parameters are specified, then one must be a string which is one of the jats flavours: '||string-join($flavours,', '))
+      
+      else (
+        let $xml := $data[. instance of document-node()]
+        let $type := $data[. instance of xs:string]
+        let $version := e:get-version($xml)
+        let $dtd := e:get-dtd($version,$type)
+        let $report :=  validate:dtd-report($xml,$dtd)
+        
+        return e:dtd2json($report)
+      ))  
+    
     (: default is archiving if no type is provided :)
-    else (
-      let $xml := for $param in $data where $param instance of document-node() return $param
-      let $type := "archiving"
-      let $version := e:get-version($xml)
-      let $dtd := e:get-dtd($version,$type)
-      let $report :=  validate:dtd-report($xml,$dtd)
-  
-      return e:dtd2json($report)
+    else if ($param-count = 1) then (
+      if (not($data[. instance of document-node()])) then 
+          error(xs:QName("basex:error"),'An xml file must be supplied to validate') 
+      else (
+        let $xml := $data[. instance of document-node()]
+        let $type := "archiving"
+        let $version := e:get-version($xml)
+        let $dtd := e:get-dtd($version,$type)
+        let $report :=  validate:dtd-report($xml,$dtd)
+        
+        return e:dtd2json($report)
+      )
     )
+      
+    else if ($param-count gt 2) then 
+      error(xs:QName("basex:error"),'Too many parameters supplied: '||$param-count)
+    
+    else error(xs:QName("basex:error"),'An xml file must be supplied to validate')
 };
 
 (: get dtd version from dtd-version attribute on root.
