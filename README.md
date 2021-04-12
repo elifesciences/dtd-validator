@@ -27,9 +27,10 @@ Invalid
 }
 ```
 
-Replace the contents of `webapp/dtd` with the DTD of your choice.
-The `.dtd` file with 'jats' in the filename [will be determined](https://github.com/elifesciences/dtd-validator/blob/eb3eeaaad1c0648f490e046b2764d8f037a6f56f/webapp/dtd-validator.xqm#L11-L13) as the DTD to use.
+JATS DTDs are included in `webapp/dtds`.
+To add (or replace) DTDs, add the files in the correct folder depending on its version and flavour, and update `webapp/dtds/catalogue.xml` with the version/filename (ensuring to include `.dtd`).
 
+dtd version is derived from the `article/@dtd-version` attribute value in the xml file supplied. If there is no such attribute, then `1.2` is the default version.
 
 # Docker
 Build a container (based on `basexhttp`)
@@ -41,3 +42,11 @@ Interact with the service on port 8984
 ```
 curl -F xml=@file.xml http://localhost:8984/dtd
 ```
+
+The flavour of JATS can be optionally specified in a type parameter in the post:
+
+```
+curl -F xml=@file.xml -F "type=publishing" http://localhost:8984/dtd
+```
+
+If no type parameter is supplied, then archiving is used by default.
